@@ -44,6 +44,31 @@
             font-size: 1.1em;
         }
 
+        .nav-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-nav {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+
         .controls {
             padding: 30px;
             background: #f8f9fa;
@@ -108,9 +133,15 @@
             color: white;
         }
 
-        .btn-stop:hover {
+        .btn-stop:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(238, 9, 121, 0.3);
+        }
+
+        .btn-stop:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .status {
@@ -205,6 +236,41 @@
             color: #6c757d;
             font-weight: 500;
         }
+
+        .progress-container {
+            padding: 0 30px 20px 30px;
+            background: #f8f9fa;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar-wrapper {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 10px;
+        }
+
+        .progress-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6c757d;
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
@@ -212,6 +278,9 @@
         <header>
             <h1>🎵 KC85 Tape Player</h1>
             <p>Robotron KC85 Tape Player - Web Edition</p>
+            <div class="nav-buttons">
+                <a href="/recorder" class="btn-nav">🔴 Tape Recorder</a>
+            </div>
         </header>
 
         <div class="controls">
@@ -224,8 +293,18 @@
                     <option value="">All Extensions</option>
                 </select>
                 <button id="playBtn" class="btn-play" disabled>▶ Play</button>
-                <button id="stopBtn" class="btn-stop">⏹ Stop</button>
+                <button id="stopBtn" class="btn-stop" disabled>⏹ Stop</button>
                 <div id="status" class="status">Select a tape to play</div>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-time">
+                <span id="currentTime">0:00</span>
+                <span id="totalTime">0:00</span>
             </div>
         </div>
 
@@ -257,6 +336,10 @@
         const configSelect = document.getElementById('configSelect');
         const extSelect = document.getElementById('extSelect');
         const tapeCount = document.getElementById('tapeCount');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const currentTime = document.getElementById('currentTime');
+        const totalTime = document.getElementById('totalTime');
 
         // Format bytes to human readable
         function formatBytes(bytes) {
@@ -278,7 +361,6 @@
 
                 tapes = data.tapes;
                 populateExtensionFilter();
-                renderTapes(tapes);
                 loading.style.display = 'none';
             } catch (error) {
                 showError('Failed to load tapes: ' + error.message);
@@ -353,13 +435,39 @@
                 const configKey = configSelect.value;
                 currentPlayer = new KC85Player(uint8Array, configKey);
                 
+                // Show progress bar and set total time
+                progressContainer.classList.add('active');
+                const duration = currentPlayer.getDuration();
+                totalTime.textContent = KC85Player.formatTime(duration);
+                currentTime.textContent = '0:00';
+                progressBar.style.width = '0%';
+                
                 updateStatus('Playing: ' + selectedTape.name, true);
-                currentPlayer.play();
+                stopBtn.disabled = false;
+                
+                // Play with callbacks for progress and completion
+                currentPlayer.play(
+                    () => {
+                        // Playback finished
+                        progressContainer.classList.remove('active');
+                        updateStatus('Finished playing: ' + selectedTape.name);
+                        playBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        currentPlayer = null;
+                    },
+                    (elapsed, total, progress) => {
+                        // Update progress bar
+                        progressBar.style.width = (progress * 100) + '%';
+                        currentTime.textContent = KC85Player.formatTime(elapsed);
+                    }
+                );
                 
             } catch (error) {
                 showError('Failed to play tape: ' + error.message);
                 updateStatus('Error playing tape');
                 playBtn.disabled = false;
+                stopBtn.disabled = true;
+                progressContainer.classList.remove('active');
             }
         }
 
@@ -369,6 +477,8 @@
                 currentPlayer.stop_play();
                 currentPlayer = null;
             }
+            progressContainer.classList.remove('active');
+            stopBtn.disabled = true;
             updateStatus(selectedTape ? 'Ready to play: ' + selectedTape.name : 'Select a tape to play');
             if (selectedTape) {
                 playBtn.disabled = false;
@@ -406,6 +516,18 @@
                 option.textContent = ext.toUpperCase();
                 extSelect.appendChild(option);
             });
+            
+            // Restore saved extension selection from localStorage
+            const savedExtension = localStorage.getItem('kc85-selected-extension');
+            if (savedExtension && extSelect.querySelector(`option[value="${savedExtension}"]`)) {
+                extSelect.value = savedExtension;
+                // Apply the filter
+                const filtered = filterTapes(searchInput.value, savedExtension);
+                renderTapes(filtered);
+            } else {
+                // No saved filter, render all tapes
+                renderTapes(tapes);
+            }
         }
 
         // Filter tapes based on search and extension
@@ -437,10 +559,23 @@
             renderTapes(filtered);
         });
         
+        configSelect.addEventListener('change', (e) => {
+            // Save config selection to localStorage
+            localStorage.setItem('kc85-config-mode', e.target.value);
+        });
+        
         extSelect.addEventListener('change', (e) => {
+            // Save extension selection to localStorage
+            localStorage.setItem('kc85-selected-extension', e.target.value);
             const filtered = filterTapes(searchInput.value, e.target.value);
             renderTapes(filtered);
         });
+        
+        // Restore config selection from localStorage
+        const savedConfig = localStorage.getItem('kc85-config-mode');
+        if (savedConfig && configSelect.querySelector(`option[value="${savedConfig}"]`)) {
+            configSelect.value = savedConfig;
+        }
 
         // Load tapes on page load
         loadTapes();

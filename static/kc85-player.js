@@ -145,14 +145,30 @@ class KC85Player {
 		this.add_stop()
 	}
 
+	// Get total playback duration in seconds
+	getDuration() {
+		return this.duration;
+	}
+
+	// Format time in seconds to MM:SS format
+	static formatTime(seconds) {
+		const mins = Math.floor(seconds / 60);
+		const secs = Math.floor(seconds % 60);
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
 	stop_play() {
 		if (window.asource) {
 			window.asource.stop()
 			window.asource.disconnect()
 		}
+		if (this.progressInterval) {
+			clearInterval(this.progressInterval);
+			this.progressInterval = null;
+		}
 	}
 
-	play() {
+	play(onEndedCallback, onProgressCallback) {
 		this.stop_play()
 		// Get an AudioBufferSourceNode.
 		// This is the AudioNode to use when we want to play an AudioBuffer
@@ -162,6 +178,30 @@ class KC85Player {
 		// connect the AudioBufferSourceNode to the
 		// destination so we can hear the sound
 		window.asource.connect(this.ac.destination);
+		
+		// Track start time for progress calculation
+		const startTime = this.ac.currentTime;
+		const duration = this.duration;
+		
+		// Set up progress tracking
+		if (onProgressCallback) {
+			this.progressInterval = setInterval(() => {
+				const elapsed = this.ac.currentTime - startTime;
+				const progress = Math.min(elapsed / duration, 1);
+				onProgressCallback(elapsed, duration, progress);
+			}, 100); // Update every 100ms
+		}
+		
+		// Set up callback for when playback ends
+		if (onEndedCallback) {
+			window.asource.onended = () => {
+				if (this.progressInterval) {
+					clearInterval(this.progressInterval);
+					this.progressInterval = null;
+				}
+				onEndedCallback();
+			};
+		}
 		// start the source playing
 		window.asource.start();
 	}

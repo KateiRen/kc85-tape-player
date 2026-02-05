@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, send_file
+from flask import Flask, render_template, jsonify, send_file, request
 import os
 import secrets
 import logging
@@ -71,6 +71,11 @@ def index():
     """Serve the main UI page"""
     return render_template('index.html')
 
+@app.route('/recorder')
+def recorder():
+    """Serve the tape recorder page"""
+    return render_template('recorder.html')
+
 @app.route('/api/tapes')
 def list_tapes():
     """Return a list of all tape files in the tapes directory"""
@@ -137,6 +142,66 @@ def get_tape(filename):
         return jsonify({'error': 'Unable to serve file'}), 500
     except Exception as e:  # noqa: BLE001 - intentional catch-all for security
         logger.error("Unexpected error serving tape %s: %s", filename, e)
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+@app.route('/api/tape/save', methods=['POST'])
+def save_tape():
+    """Save a decoded tape file to the tapes directory"""
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data or 'filename' not in data or 'content' not in data:
+            return jsonify({'error': 'Missing filename or content'}), 400
+        
+        filename = data['filename']
+        content = data['content']  # Base64 encoded or byte array
+        
+        # Validate filename
+        if not is_safe_filename(filename):
+            logger.warning("Attempt to save unsafe filename: %s", filename)
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        if not is_allowed_extension(filename):
+            logger.warning("Attempt to save file with disallowed extension: %s", filename)
+            return jsonify({'error': 'File type not allowed'}), 400
+        
+        # Check if file already exists
+        tape_path = TAPES_DIR / filename
+        if tape_path.exists():
+            return jsonify({'error': 'File already exists'}), 409
+        
+        # Decode content if base64
+        import base64
+        try:
+            if isinstance(content, str):
+                file_bytes = base64.b64decode(content)
+            else:
+                file_bytes = bytes(content)
+        except Exception as decode_error:
+            logger.error("Error decoding tape content: %s", decode_error)
+            return jsonify({'error': 'Invalid content encoding'}), 400
+        
+        # Save file
+        with open(tape_path, 'wb') as f:
+            f.write(file_bytes)
+        
+        logger.info("Saved decoded tape: %s (%d bytes)", filename, len(file_bytes))
+        
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'size': len(file_bytes)
+        }), 201
+        
+    except PermissionError:
+        logger.error("Permission denied saving tape file")
+        return jsonify({'error': 'Permission denied'}), 403
+    except OSError as e:
+        logger.error("OS error saving tape: %s", e)
+        return jsonify({'error': 'Unable to save file'}), 500
+    except Exception as e:  # noqa: BLE001 - intentional catch-all for security
+        logger.error("Unexpected error saving tape: %s", e)
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 if __name__ == "__main__":

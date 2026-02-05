@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KC85 Tape Recorder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .nav-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-nav {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .config-select {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .config-select:hover {
+            border-color: #764ba2;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-record {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            color: white;
+        }
+
+        .btn-record:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(238, 9, 121, 0.3);
+        }
+
+        .btn-record:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+            color: white;
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            flex: 1;
+            text-align: right;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .status.recording {
+            color: #ee0979;
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        .recorder-info {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .recorder-info h2 {
+            color: #434343;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .recorder-info p {
+            color: #6c757d;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            text-align: left;
+            color: #495057;
+            line-height: 1.8;
+            margin-left: 20px;
+        }
+
+        .recording-indicator {
+            display: none;
+            padding: 20px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recording-indicator.active {
+            display: block;
+        }
+
+        .recording-indicator .pulse {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: #ee0979;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .progress-log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-log.active {
+            display: block;
+        }
+
+        .progress-log .log-entry {
+            padding: 2px 0;
+            color: #495057;
+        }
+
+        .progress-log .log-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .progress-log .log-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .decode-results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px solid #28a745;
+            display: none;
+        }
+
+        .decode-results.active {
+            display: block;
+        }
+
+        .decode-results h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .decode-results table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .decode-results td {
+            padding: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .decode-results td:first-child {
+            font-weight: bold;
+            width: 150px;
+            color: #667eea;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-top: 15px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .level-meter-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: none;
+        }
+
+        .level-meter-container.active {
+            display: block;
+        }
+
+        .level-meter-wrapper {
+            margin-bottom: 15px;
+        }
+
+        .level-meter-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .level-value {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .level-bar-wrapper {
+            background: #e9ecef;
+            border-radius: 6px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #dee2e6;
+        }
+
+        .level-bar {
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 90%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.05s linear;
+            border-radius: 4px;
+        }
+
+        .level-bar.clipping {
+            animation: flash 0.2s;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .level-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔴 KC85 Tape Recorder</h1>
+            <p>Robotron KC85 Tape Recorder - Web Edition</p>
+            <div class="nav-buttons">
+                <a href="/" class="btn-nav">▶️ Tape Player</a>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="controls-row">
+                <select id="configSelect" class="config-select">
+                    <option value="default">Default Mode</option>
+                    <option value="turbo">Turbo Mode</option>
+                </select>
+                <button id="recordBtn" class="btn-record">⏺ Start Recording</button>
+                <button id="stopBtn" class="btn-stop" disabled>⏹ Stop & Decode</button>
+                <div id="status" class="status">Ready to record</div>
+            </div>
+        </div>
+
+        <div class="level-meter-container" id="levelMeterContainer">
+            <div class="level-meter-wrapper">
+                <div class="level-meter-label">
+                    <span>Audio Level</span>
+                    <span class="level-value" id="levelValue">0 dB</span>
+                </div>
+                <div class="level-bar-wrapper">
+                    <div class="level-bar" id="levelBar"></div>
+                </div>
+                <div class="level-scale">
+                    <span>-60 dB</span>
+                    <span>-40 dB</span>
+                    <span>-20 dB</span>
+                    <span>-10 dB</span>
+                    <span>0 dB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="recording-indicator" id="recordingIndicator">
+                <span class="pulse"></span>
+                <strong>Recording in progress...</strong>
+                <p style="margin-top: 10px; font-size: 14px;">Play your KC85 tape audio into the microphone</p>
+            </div>
+
+            <div class="progress-log" id="progressLog"></div>
+
+            <div class="decode-results" id="decodeResults">
+                <h3>✓ Tape Decoded Successfully!</h3>
+                <table id="resultsTable">
+                    <tr>
+                        <td>Filename:</td>
+                        <td id="resultFilename">-</td>
+                    </tr>
+                    <tr>
+                        <td>Load Address:</td>
+                        <td id="resultLoadAddr">-</td>
+                    </tr>
+                    <tr>
+                        <td>Execution Address:</td>
+                        <td id="resultExecAddr">-</td>
+                    </tr>
+                    <tr>
+                        <td>Data Length:</td>
+                        <td id="resultDataLen">-</td>
+                    </tr>
+                    <tr>
+                        <td>Total Bytes:</td>
+                        <td id="resultTotalBytes">-</td>
+                    </tr>
+                </table>
+                <button id="downloadBtn" class="btn-download">💾 Download Tape File</button>
+                <button id="saveBtn" class="btn-download" style="margin-left: 10px;">📤 Save to Server</button>
+            </div>
+
+            <div class="recorder-info" id="recorderInfo">
+                <h2>KC85 Tape Recorder</h2>
+                <p>Record and decode audio from KC85 tapes into digital tape files.</p>
+                
+                <div class="info-box">
+                    <h3>How to Use:</h3>
+                    <ul>
+                        <li>Click "Start Recording" to begin</li>
+                        <li>Play the KC85 tape audio (from cassette player or emulator)</li>
+                        <li>Click "Stop & Decode" when the tape finishes</li>
+                        <li>The decoder will analyze the audio and extract the data</li>
+                        <li>Download the decoded tape file</li>
+                    </ul>
+                </div>
+
+                <div class="info-box" style="margin-top: 15px;">
+                    <h3>Technical Details:</h3>
+                    <ul>
+                        <li>Pulse-length decoding (short ~0.5ms, long ~1ms)</li>
+                        <li>Automatic pilot tone and sync detection</li>
+                        <li>Parity and checksum validation</li>
+                        <li>Supports standard KC85 tape formats (.KCC, .TAP, .SSS)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/kc85-decoder.js"></script>
+    <script>
+        // DOM Elements
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const configSelect = document.getElementById('configSelect');
+        const recordingIndicator = document.getElementById('recordingIndicator');
+        const progressLog = document.getElementById('progressLog');
+        const decodeResults = document.getElementById('decodeResults');
+        const recorderInfo = document.getElementById('recorderInfo');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        
+        // Level meter elements
+        const levelMeterContainer = document.getElementById('levelMeterContainer');
+        const levelBar = document.getElementById('levelBar');
+        const levelValue = document.getElementById('levelValue');
+        
+        // Results elements
+        const resultFilename = document.getElementById('resultFilename');
+        const resultLoadAddr = document.getElementById('resultLoadAddr');
+        const resultExecAddr = document.getElementById('resultExecAddr');
+        const resultDataLen = document.getElementById('resultDataLen');
+        const resultTotalBytes = document.getElementById('resultTotalBytes');
+        
+        // Decoder instance
+        let decoder = null;
+        let decodedData = null;
+        
+        // Initialize decoder
+        function initDecoder() {
+            decoder = new KC85Decoder({
+                debug: true,
+                onProgress: (message) => {
+                    updateStatus(message);
+                    logProgress(message);
+                },
+                onComplete: (result) => {
+                    logProgress('✓ Decoding complete!', 'success');
+                    showResults(result);
+                    decodedData = result;
+                },
+                onError: (error) => {
+                    logProgress('✗ Error: ' + error, 'error');
+                    updateStatus('Error: ' + error);
+                    recordBtn.disabled = false;
+                    stopBtn.disabled = true;
+                },
+                onLevel: (db, normalizedLevel, rms) => {
+                    // Update level meter during recording
+                    updateLevelMeter(db, normalizedLevel);
+                }
+            });
+        }
+        
+        // Update status message
+        function updateStatus(message, recording = false) {
+            status.textContent = message;
+            if (recording) {
+                status.classList.add('recording');
+            } else {
+                status.classList.remove('recording');
+            }
+        }
+        
+        // Log progress message
+        function logProgress(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            if (type === 'error') {
+                entry.className += ' log-error';
+            } else if (type === 'success') {
+                entry.className += ' log-success';
+            }
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            progressLog.appendChild(entry);
+            progressLog.scrollTop = progressLog.scrollHeight;
+        }
+        
+        // Show decode results
+        function showResults(result) {
+            const header = result.header;
+            
+            resultFilename.textContent = header.filename;
+            resultLoadAddr.textContent = '0x' + header.loadAddress.toString(16).toUpperCase().padStart(4, '0');
+            resultExecAddr.textContent = '0x' + header.execAddress.toString(16).toUpperCase().padStart(4, '0');
+            resultDataLen.textContent = header.dataLength + ' bytes';
+            resultTotalBytes.textContent = result.totalBytes + ' bytes';
+            
+            recorderInfo.style.display = 'none';
+            decodeResults.classList.add('active');
+        }
+        
+        // Update level meter
+        function updateLevelMeter(db, normalizedLevel) {
+            // Update bar width (0-100%)
+            levelBar.style.width = normalizedLevel + '%';
+            
+            // Update numerical value
+            const displayDb = Math.max(-60, Math.min(0, db));
+            levelValue.textContent = displayDb.toFixed(1) + ' dB';
+            
+            // Add clipping indicator if level is too high
+            if (db > -3) {
+                levelBar.classList.add('clipping');
+                setTimeout(() => levelBar.classList.remove('clipping'), 200);
+            }
+        }
+        
+        // Start recording
+        async function startRecording() {
+            initDecoder();
+            
+            const success = await decoder.startRecording();
+            if (success) {
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+                recordingIndicator.classList.add('active');
+                levelMeterContainer.classList.add('active');
+                progressLog.classList.add('active');
+                progressLog.innerHTML = '';
+                decodeResults.classList.remove('active');
+                recorderInfo.style.display = 'none';
+                
+                updateStatus('Recording...', true);
+                logProgress('Recording started - play your tape audio now');
+            }
+        }
+        
+        // Stop recording and decode
+        async function stopRecording() {
+            await decoder.stopRecording();
+            
+            recordBtn.disabled = true;
+            stopBtn.disabled = true;
+            recordingIndicator.classList.remove('active');
+            levelMeterContainer.classList.remove('active');
+            updateStatus('Processing...');
+            
+            logProgress('Processing recorded audio...');
+            
+            // Decode the recorded audio
+            const result = await decoder.decode();
+            
+            if (result.success) {
+                updateStatus('Decoding complete!');
+            } else {
+                updateStatus('Decoding failed');
+                recordBtn.disabled = false;
+            }
+        }
+        
+        // Download decoded tape file
+        function downloadTape() {
+            if (decoder && decodedData) {
+                const filename = decodedData.header.filename.trim() || 'decoded_tape';
+                decoder.downloadTapeFile(filename + '.kcc');
+                logProgress('Downloaded: ' + filename + '.kcc', 'success');
+            }
+        }
+        
+        // Save decoded tape to server
+        async function saveTapeToServer() {
+            if (!decoder || !decodedData) {
+                return;
+            }
+            
+            try {
+                const filename = (decodedData.header.filename.trim() || 'decoded_tape') + '.kcc';
+                const tapeFile = decoder.generateTapeFile();
+                
+                // Convert to base64 for JSON transfer
+                const base64 = btoa(String.fromCharCode.apply(null, tapeFile));
+                
+                logProgress('Uploading to server...');
+                saveBtn.disabled = true;
+                
+                const response = await fetch('/api/tape/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: base64
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    logProgress('✓ Saved to server: ' + filename, 'success');
+                    alert('Tape file saved to server successfully!');
+                } else {
+                    logProgress('✗ Failed to save: ' + result.error, 'error');
+                    alert('Failed to save: ' + result.error);
+                    saveBtn.disabled = false;
+                }
+            } catch (error) {
+                logProgress('✗ Error saving to server: ' + error.message, 'error');
+                alert('Error saving to server: ' + error.message);
+                saveBtn.disabled = false;
+            }
+        }
+        
+        // Reset for new recording
+        function resetRecorder() {
+            decoder = null;
+            decodedData = null;
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            recordingIndicator.classList.remove('active');
+            progressLog.classList.remove('active');
+            decodeResults.classList.remove('active');
+            recorderInfo.style.display = 'block';
+            updateStatus('Ready to record');
+        }
+        
+        // Event listeners
+        recordBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+        downloadBtn.addEventListener('click', downloadTape);
+        saveBtn.addEventListener('click', saveTapeToServer);
+        
+        configSelect.addEventListener('change', (e) => {
+            // Save config selection to localStorage
+            localStorage.setItem('kc85-config-mode', e.target.value);
+        });
+        
+        // Restore config selection from localStorage
+        const savedConfig = localStorage.getItem('kc85-config-mode');
+        if (savedConfig && configSelect.querySelector(`option[value="${savedConfig}"]`)) {
+            configSelect.value = savedConfig;
+        }
+        
+        // Initialize
+        updateStatus('Ready to record');
+    </script>
+</body>
+</html>

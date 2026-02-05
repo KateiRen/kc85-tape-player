@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KC85 Tape Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .config-select, .ext-select {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .config-select:hover, .ext-select:hover {
+            border-color: #764ba2;
+        }
+
+        .ext-select {
+            min-width: 150px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-play {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
+        }
+
+        .btn-play:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            color: white;
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(238, 9, 121, 0.3);
+        }
+
+        .status {
+            flex: 1;
+            text-align: right;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .status.playing {
+            color: #11998e;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tapes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .tape-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tape-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .tape-item.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .tape-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .tape-size {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #6c757d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .tape-count {
+            margin-bottom: 15px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 KC85 Tape Player</h1>
+            <p>Robotron KC85 Tape Player - Web Edition</p>
+        </header>
+
+        <div class="controls">
+            <div class="controls-row">
+                <select id="configSelect" class="config-select">
+                    <option value="default">Default Mode</option>
+                    <option value="turbo">Turbo Mode</option>
+                </select>
+                <select id="extSelect" class="ext-select">
+                    <option value="">All Extensions</option>
+                </select>
+                <button id="playBtn" class="btn-play" disabled>▶ Play</button>
+                <button id="stopBtn" class="btn-stop">⏹ Stop</button>
+                <div id="status" class="status">Select a tape to play</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search tapes...">
+            </div>
+            <div id="tapeCount" class="tape-count"></div>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="loading" class="loading">Loading tapes...</div>
+            <div id="tapesGrid" class="tapes-grid"></div>
+        </div>
+    </div>
+
+    <script src="/static/kc85-player.js"></script>
+    <script>
+        let tapes = [];
+        let selectedTape = null;
+        let currentPlayer = null;
+
+        // DOM Elements
+        const tapesGrid = document.getElementById('tapesGrid');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const searchInput = document.getElementById('searchInput');
+        const configSelect = document.getElementById('configSelect');
+        const extSelect = document.getElementById('extSelect');
+        const tapeCount = document.getElementById('tapeCount');
+
+        // Format bytes to human readable
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Load tapes from API
+        async function loadTapes() {
+            try {
+                const response = await fetch('/api/tapes');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                tapes = data.tapes;
+                populateExtensionFilter();
+                renderTapes(tapes);
+                loading.style.display = 'none';
+            } catch (error) {
+                showError('Failed to load tapes: ' + error.message);
+                loading.style.display = 'none';
+            }
+        }
+
+        // Render tapes grid
+        function renderTapes(tapesToRender) {
+            tapesGrid.innerHTML = '';
+            
+            if (tapesToRender.length === 0) {
+                tapesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">No tapes found</p>';
+                tapeCount.textContent = '';
+                return;
+            }
+
+            tapeCount.textContent = `${tapesToRender.length} tape${tapesToRender.length !== 1 ? 's' : ''} found`;
+
+            tapesToRender.forEach(tape => {
+                const tapeDiv = document.createElement('div');
+                tapeDiv.className = 'tape-item';
+                if (selectedTape && selectedTape.name === tape.name) {
+                    tapeDiv.classList.add('selected');
+                }
+                
+                tapeDiv.innerHTML = `
+                    <div class="tape-name">${tape.name}</div>
+                    <div class="tape-size">${formatBytes(tape.size)}</div>
+                `;
+                
+                tapeDiv.addEventListener('click', () => selectTape(tape));
+                tapesGrid.appendChild(tapeDiv);
+            });
+        }
+
+        // Select a tape
+        function selectTape(tape) {
+            selectedTape = tape;
+            playBtn.disabled = false;
+            updateStatus('Ready to play: ' + tape.name);
+            renderTapes(filterTapes(searchInput.value, extSelect.value));
+        }
+
+        // Show error message
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Play selected tape
+        async function playTape() {
+            if (!selectedTape) return;
+
+            try {
+                updateStatus('Loading ' + selectedTape.name + '...');
+                playBtn.disabled = true;
+
+                const response = await fetch(`/api/tape/${encodeURIComponent(selectedTape.name)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load tape file');
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                updateStatus('Generating audio...');
+                
+                const configKey = configSelect.value;
+                currentPlayer = new KC85Player(uint8Array, configKey);
+                
+                updateStatus('Playing: ' + selectedTape.name, true);
+                currentPlayer.play();
+                
+            } catch (error) {
+                showError('Failed to play tape: ' + error.message);
+                updateStatus('Error playing tape');
+                playBtn.disabled = false;
+            }
+        }
+
+        // Stop playback
+        function stopPlayback() {
+            if (currentPlayer) {
+                currentPlayer.stop_play();
+                currentPlayer = null;
+            }
+            updateStatus(selectedTape ? 'Ready to play: ' + selectedTape.name : 'Select a tape to play');
+            if (selectedTape) {
+                playBtn.disabled = false;
+            }
+        }
+
+        // Update status message
+        function updateStatus(message, playing = false) {
+            status.textContent = message;
+            if (playing) {
+                status.classList.add('playing');
+            } else {
+                status.classList.remove('playing');
+            }
+        }
+
+        // Populate extension filter with unique extensions
+        function populateExtensionFilter() {
+            const extensions = new Set();
+            tapes.forEach(tape => {
+                if (tape.extension) {
+                    extensions.add(tape.extension);
+                }
+            });
+            
+            // Clear existing options except the first "All Extensions"
+            while (extSelect.options.length > 1) {
+                extSelect.remove(1);
+            }
+            
+            // Add sorted extensions
+            Array.from(extensions).sort().forEach(ext => {
+                const option = document.createElement('option');
+                option.value = ext;
+                option.textContent = ext.toUpperCase();
+                extSelect.appendChild(option);
+            });
+        }
+
+        // Filter tapes based on search and extension
+        function filterTapes(query, extension) {
+            let filtered = tapes;
+            
+            // Filter by extension
+            if (extension) {
+                filtered = filtered.filter(tape => tape.extension === extension);
+            }
+            
+            // Filter by search query
+            if (query) {
+                const lowerQuery = query.toLowerCase();
+                filtered = filtered.filter(tape => 
+                    tape.name.toLowerCase().includes(lowerQuery)
+                );
+            }
+            
+            return filtered;
+        }
+
+        // Event listeners
+        playBtn.addEventListener('click', playTape);
+        stopBtn.addEventListener('click', stopPlayback);
+        
+        searchInput.addEventListener('input', (e) => {
+            const filtered = filterTapes(e.target.value, extSelect.value);
+            renderTapes(filtered);
+        });
+        
+        extSelect.addEventListener('change', (e) => {
+            const filtered = filterTapes(searchInput.value, e.target.value);
+            renderTapes(filtered);
+        });
+
+        // Load tapes on page load
+        loadTapes();
+    </script>
+</body>
+</html>

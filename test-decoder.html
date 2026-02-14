@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>KC85 Decoder Test</title>
+    <script src="static/kc85-decoder.js"></script>
+</head>
+<body>
+    <h1>KC85 Decoder Test</h1>
+    <button onclick="testDecoder()">Run Test</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function log(msg) {
+            const output = document.getElementById('output');
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        function testDecoder() {
+            log('=== KC85 Decoder Test ===');
+            log('Creating decoder instance...');
+            
+            try {
+                const decoder = new KC85Decoder({
+                    debug: true,
+                    onProgress: (msg) => log('Progress: ' + msg),
+                    onError: (msg) => log('ERROR: ' + msg),
+                    onComplete: (result) => log('Complete: ' + JSON.stringify(result, null, 2)),
+                    onLevel: (db, normalized, rms) => {
+                        // Don't log every level update, too noisy
+                    },
+                    onDataDecoded: (data) => {
+                        log(`Byte #${data.byteCount}: 0x${data.hex} (${data.byte}) '${data.char}'`);
+                    }
+                });
+                
+                log('✓ Decoder created successfully');
+                log('  - Sample rate: ' + decoder.config.sampleRate);
+                log('  - Short pulse: ' + decoder.config.shortPulseMin + '-' + decoder.config.shortPulseMax + 's');
+                log('  - Long pulse: ' + decoder.config.longPulseMin + '-' + decoder.config.longPulseMax + 's');
+                log('  - Stop pulse: ' + decoder.config.stopPulseMin + '-' + decoder.config.stopPulseMax + 's');
+                log('');
+                log('✓ Test passed! Decoder is ready to use.');
+                log('  Click "Start Recording & Decoding" in decoder-demo.html to test with real audio.');
+                
+            } catch (error) {
+                log('✗ Test FAILED: ' + error.message);
+                log('  Stack: ' + error.stack);
+            }
+        }
+    </script>
+</body>
+</html>

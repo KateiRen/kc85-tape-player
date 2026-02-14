@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>KC85 Real-time Tape Decoder</title>
+    <script src="static/kc85-decoder.js"></script>
+    <style>
+        body {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #252526;
+            border-radius: 5px;
+        }
+        
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: #1177bb;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        button.danger {
+            background: #d13438;
+        }
+        
+        button.danger:hover {
+            background: #e13438;
+        }
+        
+        button.success {
+            background: #0e7490;
+        }
+        
+        button.success:hover {
+            background: #0e8aa0;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #252526;
+            border-radius: 5px;
+            border-left: 4px solid #4ec9b0;
+        }
+        
+        .level-meter {
+            margin: 10px 0;
+        }
+        
+        .level-bar {
+            width: 100%;
+            height: 30px;
+            background: #3c3c3c;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .level-fill {
+            height: 100%;
+            background: linear-gradient(to right, #4ec9b0, #dcdcaa, #ce9178);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        
+        .level-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .data-display {
+            margin: 20px 0;
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .data-header {
+            background: #2d2d30;
+            padding: 10px;
+            border-bottom: 1px solid #3c3c3c;
+            font-weight: bold;
+        }
+        
+        .data-content {
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .byte-row {
+            padding: 2px 0;
+            border-bottom: 1px solid #2d2d30;
+        }
+        
+        .byte-row:hover {
+            background: #2d2d30;
+        }
+        
+        .byte-count {
+            color: #858585;
+            display: inline-block;
+            width: 60px;
+        }
+        
+        .byte-hex {
+            color: #b5cea8;
+            display: inline-block;
+            width: 40px;
+            font-weight: bold;
+        }
+        
+        .byte-dec {
+            color: #9cdcfe;
+            display: inline-block;
+            width: 50px;
+        }
+        
+        .byte-char {
+            color: #ce9178;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .header-info {
+            background: #252526;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #dcdcaa;
+        }
+        
+        .info-row {
+            padding: 5px 0;
+        }
+        
+        .info-label {
+            color: #9cdcfe;
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        
+        .info-value {
+            color: #ce9178;
+        }
+        
+        .log-display {
+            background: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            border-radius: 5px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 11px;
+        }
+        
+        .log-entry {
+            padding: 2px 0;
+            color: #858585;
+        }
+        
+        .log-entry.info {
+            color: #4ec9b0;
+        }
+        
+        .log-entry.warning {
+            color: #dcdcaa;
+        }
+        
+        .log-entry.error {
+            color: #f48771;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 KC85 Real-time Tape Decoder</h1>
+        
+        <div class="controls">
+            <h3 style="margin-top: 0; color: #dcdcaa;">Decoder Method:</h3>
+            <button id="startBtn" onclick="startDecoding('pulse')" class="success">▶ Pulse Duration Method</button>
+            <button id="startBtnZC" onclick="startDecoding('zerocrossing')" class="success">▶ Zero-Crossing Method</button>
+            <button id="stopBtn" onclick="stopDecoding()" class="danger" disabled>⏹ Stop Recording</button>
+            <button onclick="clearDisplay()">🗑 Clear Display</button>
+            <button onclick="downloadFile()" id="downloadBtn" disabled>💾 Download Tape File</button>
+            <div style="margin-top: 10px; font-size: 12px; color: #858585;">
+                <strong>Pulse Duration:</strong> Original method using half-period measurements.<br>
+                <strong>Zero-Crossing:</strong> KcTapeTool-inspired method measuring full oscillations.
+            </div>
+        </div>
+        
+        <div class="status">
+            <div><strong>Status:</strong> <span id="statusText">Ready</span></div>
+            <div class="level-meter">
+                <div class="level-bar">
+                    <div class="level-fill" id="levelFill"></div>
+                    <div class="level-text" id="levelText">0 dB</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-info" id="headerInfo" style="display: none;">
+            <h3 style="margin-top: 0; color: #dcdcaa;">📄 Decoded Header</h3>
+            <div class="info-row">
+                <span class="info-label">Filename:</span>
+                <span class="info-value" id="hdrFilename">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Load Address:</span>
+                <span class="info-value" id="hdrLoadAddr">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Data Length:</span>
+                <span class="info-value" id="hdrDataLen">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Exec Address:</span>
+                <span class="info-value" id="hdrExecAddr">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Block Type:</span>
+                <span class="info-value" id="hdrBlockType">-</span>
+            </div>
+        </div>
+        
+        <div class="data-display">
+            <div class="data-header">📊 Decoded Data (Real-time)</div>
+            <div class="data-content" id="dataContent">
+                <div style="color: #858585; text-align: center; padding: 20px;">
+                    No data yet. Start recording to see decoded bytes in real-time.
+                </div>
+            </div>
+        </div>
+        
+        <div class="log-display" id="logDisplay">
+            <div class="log-entry">System ready. Click "Start Recording & Decoding" to begin.</div>
+        </div>
+    </div>
+    
+    <script>
+        let decoder = null;
+        let decodedBytes = [];
+        let currentDecoderType = null;
+        
+        function startDecoding(method = 'pulse') {
+            currentDecoderType = method;
+            
+            const config = {
+                debug: true,
+                sampleRate: method === 'zerocrossing' ? 44100 : 48000,
+                
+                onProgress: (msg) => {
+                    document.getElementById('statusText').textContent = msg;
+                    addLog(msg, 'info');
+                },
+                
+                onError: (msg) => {
+                    document.getElementById('statusText').textContent = 'Error: ' + msg;
+                    addLog('ERROR: ' + msg, 'error');
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('startBtnZC').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                },
+                
+                onComplete: (result) => {
+                    const methodLabel = result.method === 'zero-crossing' ? '(Zero-Crossing)' : '(Pulse Duration)';
+                    document.getElementById('statusText').textContent = 
+                        `Complete! ${result.totalBytes} bytes decoded ${methodLabel}`;
+                    addLog(`Decoding complete: ${result.totalBytes} bytes ${methodLabel}`, 'info');
+                    document.getElementById('downloadBtn').disabled = false;
+                },
+                
+                onLevel: (db, normalized, rms) => {
+                    const levelFill = document.getElementById('levelFill');
+                    const levelText = document.getElementById('levelText');
+                    levelFill.style.width = normalized + '%';
+                    levelText.textContent = db.toFixed(1) + ' dB';
+                },
+                
+                onDataDecoded: (data) => {
+                    decodedBytes.push(data);
+                    addByteToDisplay(data);
+                    
+                    // Auto-scroll to bottom
+                    const content = document.getElementById('dataContent');
+                    content.scrollTop = content.scrollHeight;
+                }
+            };
+            
+            // Create appropriate decoder
+            if (method === 'zerocrossing') {
+                decoder = new KC85ZeroCrossingDecoder(config);
+                addLog('Using Zero-Crossing decoder (KcTapeTool method)', 'info');
+            } else {
+                decoder = new KC85Decoder(config);
+                addLog('Using Pulse Duration decoder', 'info');
+            }
+            
+            decoder.startRecording().then(success => {
+                if (success) {
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('startBtnZC').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('downloadBtn').disabled = true;
+                    addLog(`Recording started with ${method} method`, 'info');
+                }
+            });
+        }
+        
+        function stopDecoding() {
+            if (decoder) {
+                decoder.stopRecording();
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtnZC').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                addLog('Recording stopped', 'info');
+            }
+        }
+        
+        function clearDisplay() {
+            decodedBytes = [];
+            document.getElementById('dataContent').innerHTML = 
+                '<div style="color: #858585; text-align: center; padding: 20px;">' +
+                'No data yet. Start recording to see decoded bytes in real-time.' +
+                '</div>';
+            document.getElementById('headerInfo').style.display = 'none';
+            document.getElementById('logDisplay').innerHTML = '';
+            addLog('Display cleared', 'info');
+        }
+        
+        function addByteToDisplay(data) {
+            const content = document.getElementById('dataContent');
+            
+            // Remove placeholder if this is the first byte
+            if (decodedBytes.length === 1) {
+                content.innerHTML = '';
+            }
+            
+            const row = document.createElement('div');
+            row.className = 'byte-row';
+            row.innerHTML = `
+                <span class="byte-count">#${data.byteCount.toString().padStart(4, '0')}</span>
+                <span class="byte-hex">0x${data.hex}</span>
+                <span class="byte-dec">(${data.byte.toString().padStart(3, ' ')})</span>
+                <span class="byte-char">'${data.char}'</span>
+            `;
+            content.appendChild(row);
+            
+            // Check if we should display header info
+            if (data.byteCount === 24 && decoder && decoder.headerBlock) {
+                displayHeader(decoder.headerBlock);
+            }
+        }
+        
+        function displayHeader(header) {
+            document.getElementById('headerInfo').style.display = 'block';
+            document.getElementById('hdrFilename').textContent = header.filename || '(unnamed)';
+            document.getElementById('hdrLoadAddr').textContent = '0x' + header.loadAddress.toString(16).toUpperCase();
+            document.getElementById('hdrDataLen').textContent = header.dataLength + ' bytes';
+            document.getElementById('hdrExecAddr').textContent = '0x' + header.execAddress.toString(16).toUpperCase();
+            document.getElementById('hdrBlockType').textContent = '0x' + header.blockType.toString(16).toUpperCase();
+            
+            addLog(`Header decoded: ${header.filename} (${header.dataLength} bytes)`, 'info');
+        }
+        
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('logDisplay');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function downloadFile() {
+            if (decoder) {
+                try {
+                    const filename = decoder.headerBlock ? 
+                        (decoder.headerBlock.filename.trim() || 'decoded') : 
+                        'decoded';
+                    decoder.downloadTapeFile(filename + '.kcc');
+                    addLog(`Downloaded: ${filename}.kcc`, 'info');
+                } catch (error) {
+                    addLog(`Download failed: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (decoder && decoder.recording) {
+                decoder.stopRecording();
+            }
+        });
+    </script>
+</body>
+</html>

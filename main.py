@@ -204,7 +204,7 @@ def save_tape():
         logger.error("Unexpected error saving tape: %s", e)
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
-if __name__ == "__main__":
+def main():
     # Get configuration from environment variables
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
     host = os.environ.get('HOST', '127.0.0.1')
@@ -220,3 +220,7 @@ if __name__ == "__main__":
     
     logger.info("Starting Flask server on %s:%s", host, port)
     app.run(debug=debug_mode, host=host, port=port)
+
+
+if __name__ == "__main__":
+    main()

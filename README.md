@@ -15,16 +15,13 @@ Instead of running directly from javascript in the index.html (which gives me CO
 
 ## Installation
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+1. Install uv first
 
 ## Running the Application
 
 1. Start the Flask server:
 ```bash
-python app.py
+uv run main
 ```
 
 2. Open your browser and navigate to:
@@ -57,13 +54,18 @@ http://localhost:5000
 
 ```
 .
-├── app.py                 # Flask application
-├── requirements.txt       # Python dependencies
+├── main.py               # Flask application
+├── .env                  # Store your SECRET_KEY
 ├── static/
 │   └── kc85-player.js    # KC85 player JavaScript library
+│   └── kc85-decoder.js   # KC85 recorder JavaScript library
 ├── templates/
 │   └── index.html        # Main UI template
-└── tapes/                # Directory containing tape files
+│   └── recorder.html     # UI template for the recorder
+├── tapes/                # Directory containing tape files
+├── pyproject.toml        # UVs project definition
+├── uv.lock               # UVs lock file
+└── Readme.md             # This file
 ```
 
 ## Credits

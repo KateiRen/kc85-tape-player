@@ -1,6 +1,9 @@
 # Environment variables
 .env
 
+# uv / virtual environments
+.venv/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -25,6 +28,15 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
 
 # Flask
 instance/
